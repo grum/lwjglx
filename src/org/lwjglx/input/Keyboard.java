@@ -158,16 +158,17 @@ public class Keyboard {
 	public static final int KEY_SLEEP           = 0xDF;
 
 	
-	private static int maxEvents = 32;
+	private static EventQueue queue = new EventQueue(32);
+	//private static int maxEvents = 32;
 	
-	private static int eventCount = 0;
-	private static int currentEventPos = -1;
-	private static int nextEventPos = 0;
+	//private static int eventCount = 0;
+	//private static int currentEventPos = -1;
+	//private static int nextEventPos = 0;
 	
-	private static int[] keyEvents = new int[maxEvents];
-	private static boolean[] keyEventStates = new boolean[maxEvents];
+	private static int[] keyEvents = new int[queue.getMaxEvents()];
+	private static boolean[] keyEventStates = new boolean[queue.getMaxEvents()];
+	private static long[] nanoTimeEvents = new long[queue.getMaxEvents()];
 	private static char[] keyEventChars = new char[256];
-	private static long[] nanoTimeEvents = new long[maxEvents];
 	
 	public static final int KEYBOARD_SIZE = 256;
 	
@@ -199,19 +200,20 @@ public class Keyboard {
 	}
 	
 	public static void addKeyEvent(int key, boolean pressed) {
-		eventCount++;
-		if (eventCount > maxEvents) eventCount = maxEvents;
+		//eventCount++;
+		//if (eventCount > maxEvents) eventCount = maxEvents;
 		
-		keyEvents[nextEventPos] = KeyCodes.toLwjglKey(key);
-		keyEventStates[nextEventPos] = pressed;
+		keyEvents[queue.getNextPos()] = KeyCodes.toLwjglKey(key);
+		keyEventStates[queue.getNextPos()] = pressed;
 		
-		nanoTimeEvents[nextEventPos] = Sys.getNanoTime();
+		nanoTimeEvents[queue.getNextPos()] = Sys.getNanoTime();
 		
-		nextEventPos++;
+		queue.add();
+		/*nextEventPos++;
 		if (nextEventPos == maxEvents) nextEventPos = 0;
 		
 		if (currentEventPos == nextEventPos) currentEventPos++;
-		if (currentEventPos == maxEvents) currentEventPos = 0;
+		if (currentEventPos == maxEvents) currentEventPos = 0;*/
 	}
 	
 	public static void addCharEvent(int key, char c) {
@@ -242,17 +244,18 @@ public class Keyboard {
 	}
 	
 	public static boolean next() {
-		if (eventCount == 0) return false;
+		return queue.next();
+		/*if (eventCount == 0) return false;
 		
 		eventCount--;
 		currentEventPos++;
 		if (currentEventPos == maxEvents) currentEventPos = 0;
 		
-		return true;
+		return true;*/
 	}
 	
 	public static int getEventKey() {
-		return keyEvents[currentEventPos];
+		return keyEvents[queue.getCurrentPos()];
 	}
 	
 	public static char getEventCharacter() {
@@ -260,11 +263,11 @@ public class Keyboard {
 	}
 	
 	public static boolean getEventKeyState() {
-		return keyEventStates[currentEventPos];
+		return keyEventStates[queue.getCurrentPos()];
 	}
 	
 	public static long getEventNanoseconds() {
-		return nanoTimeEvents[currentEventPos];
+		return nanoTimeEvents[queue.getCurrentPos()];
 	}
 	
 	public static String getKeyName(int key) {

@@ -18,67 +18,49 @@ public class Mouse {
 	private static int x = 0;
 	private static int y = 0;
 	
-	private static int maxEvents = 32;
+	private static EventQueue queue = new EventQueue(32);
 	
-	private static int[] buttonEvents = new int[maxEvents];
-	private static boolean[] buttonEventStates = new boolean[maxEvents];
-	private static int[] xEvents = new int[maxEvents];
-	private static int[] yEvents = new int[maxEvents];
-	private static int[] lastxEvents = new int[maxEvents];
-	private static int[] lastyEvents = new int[maxEvents];
-	private static long[] nanoTimeEvents = new long[maxEvents];
-	
-	private static int eventCount = 0;
-	private static int currentEventPos = -1;
-	private static int nextEventPos = 0;
+	private static int[] buttonEvents = new int[queue.getMaxEvents()];
+	private static boolean[] buttonEventStates = new boolean[queue.getMaxEvents()];
+	private static int[] xEvents = new int[queue.getMaxEvents()];
+	private static int[] yEvents = new int[queue.getMaxEvents()];
+	private static int[] lastxEvents = new int[queue.getMaxEvents()];
+	private static int[] lastyEvents = new int[queue.getMaxEvents()];
+	private static long[] nanoTimeEvents = new long[queue.getMaxEvents()];
 	
 	private static boolean clipPostionToDisplay = true;
 	
 	public static void addMoveEvent(double mouseX, double mouseY) {
-		eventCount++;
-		if (eventCount > maxEvents) eventCount = maxEvents;
-		
 		latestX = (int)mouseX;
 		latestY = Display.getHeight() - (int)mouseY;
 		
-		lastxEvents[nextEventPos] = xEvents[nextEventPos];
-		lastyEvents[nextEventPos] = yEvents[nextEventPos];
+		lastxEvents[queue.getNextPos()] = xEvents[queue.getNextPos()];
+		lastyEvents[queue.getNextPos()] = yEvents[queue.getNextPos()];
 		
-		xEvents[nextEventPos] = latestX;
-		yEvents[nextEventPos] = latestY;
+		xEvents[queue.getNextPos()] = latestX;
+		yEvents[queue.getNextPos()] = latestY;
 		
-		buttonEvents[nextEventPos] = -1;
-		buttonEventStates[nextEventPos] = false;
+		buttonEvents[queue.getNextPos()] = -1;
+		buttonEventStates[queue.getNextPos()] = false;
 		
-		nanoTimeEvents[nextEventPos] = Sys.getNanoTime();
+		nanoTimeEvents[queue.getNextPos()] = Sys.getNanoTime();
 		
-		nextEventPos++;
-		if (nextEventPos == maxEvents) nextEventPos = 0;
-		
-		if (currentEventPos == nextEventPos) currentEventPos++;
-		if (currentEventPos == maxEvents) currentEventPos = 0;
+		queue.add();
 	}
 	
 	public static void addButtonEvent(int button, boolean pressed) {
-		eventCount++;
-		if (eventCount > maxEvents) eventCount = maxEvents;
+		lastxEvents[queue.getNextPos()] = xEvents[queue.getNextPos()];
+		lastyEvents[queue.getNextPos()] = yEvents[queue.getNextPos()];
 		
-		lastxEvents[nextEventPos] = xEvents[nextEventPos];
-		lastyEvents[nextEventPos] = yEvents[nextEventPos];
+		xEvents[queue.getNextPos()] = latestX;
+		yEvents[queue.getNextPos()] = latestY;
 		
-		xEvents[nextEventPos] = latestX;
-		yEvents[nextEventPos] = latestY;
+		buttonEvents[queue.getNextPos()] = button;
+		buttonEventStates[queue.getNextPos()] = pressed;
 		
-		buttonEvents[nextEventPos] = button;
-		buttonEventStates[nextEventPos] = pressed;
+		nanoTimeEvents[queue.getNextPos()] = Sys.getNanoTime();
 		
-		nanoTimeEvents[nextEventPos] = Sys.getNanoTime();
-		
-		nextEventPos++;
-		if (nextEventPos == maxEvents) nextEventPos = 0;
-		
-		if (currentEventPos == nextEventPos) currentEventPos++;
-		if (currentEventPos == maxEvents) currentEventPos = 0;
+		queue.add();
 	}
 	
 	public static void poll() {
@@ -120,41 +102,35 @@ public class Mouse {
 	}
 	
 	public static boolean next() {
-		if (eventCount == 0) return false;
-		
-		eventCount--;
-		currentEventPos++;
-		if (currentEventPos == maxEvents) currentEventPos = 0;
-		
-		return true;
+		return queue.next();
 	}
 	
 	public static int getEventX() {
-		return xEvents[currentEventPos];
+		return xEvents[queue.getCurrentPos()];
 	}
 	
 	public static int getEventY() {
-		return yEvents[currentEventPos];
+		return yEvents[queue.getCurrentPos()];
 	}
 	
 	public static int getEventDX() {
-		return xEvents[currentEventPos] - lastxEvents[currentEventPos];
+		return xEvents[queue.getCurrentPos()] - lastxEvents[queue.getCurrentPos()];
 	}
 	
 	public static int getEventDY() {
-		return yEvents[currentEventPos] - lastyEvents[currentEventPos];
+		return yEvents[queue.getCurrentPos()] - lastyEvents[queue.getCurrentPos()];
 	}
 	
 	public static long getEventNanoseconds() {
-		return nanoTimeEvents[currentEventPos];
+		return nanoTimeEvents[queue.getCurrentPos()];
 	}
 	
 	public static int getEventButton() {
-		return buttonEvents[currentEventPos];
+		return buttonEvents[queue.getCurrentPos()];
 	}
 	
 	public static boolean getEventButtonState() {
-		return buttonEventStates[currentEventPos];
+		return buttonEventStates[queue.getCurrentPos()];
 	}
 	
 	public static int getEventDWheel() {
